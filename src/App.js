@@ -1,25 +1,70 @@
 import logo from './logo.svg';
+import {useEffect, useState} from 'react';
 import './App.css';
+import { getDatabase ,push,ref,set ,
+  onChildAdded } from "firebase/database";
 
 function App() {
+  const [name,setName]=useState("");
+  const [chats,setChats]=useState([]);
+  const [msg,setMsg]=useState('');
+  const db = getDatabase();
+  const chatListref = ref(db, 'chats');
+
+  const updateHeight=()=>{
+    const el=document.getElementById('chat');
+    if(el){
+      el.scrollTop=el.scrollHeight;
+    }
+
+  }
+
+
+  useEffect(()=>{
+    onChildAdded(chatListref, (data) => {
+      setChats(chats=>[...chats,data.val()])
+      setTimeout(()=>{
+        updateHeight();
+      },100)
+
+    });
+  },[])
+  const sendChat=()=>{
+    const chatRef = push(chatListref);
+    set(chatRef, {
+      name,message: msg
+    });
+    setMsg('')
+  };
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+      <div>
+        {name?null:
+            <div>
+              <input type="text" placeholder="Enter your name to start"
+                     onBlur={(e)=>setName(e.target.value)}>
+
+              </input>
+            </div>}
+        {name? <div>
+          <h3>User:{name}</h3>
+          <div id="chat" className="chat-container">
+            {chats.map((c,i)=>
+                <div key={i} className={`container ${c.name===name ? 'me':''}`}>
+                  <p className="chatbox">
+                    <strong>{c.name}: </strong>
+                    <span>{c.message}</span>
+                  </p>
+                </div>)}
+
+          </div>
+          <div className="btm">
+            <input type="text" onInput={e=>setMsg(e.target.value) }value={msg}
+                   placeholder="enter your chat">
+            </input>
+            <button onClick={e=>sendChat()}>Send</button>
+          </div>
+        </div>:null}
+      </div>
   );
 }
-
 export default App;
